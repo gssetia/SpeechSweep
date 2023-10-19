@@ -6,8 +6,10 @@
  * @flow strict-local
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type {Node} from 'react';
+import auth from '@react-native-firebase/auth';
+
 import {
   SafeAreaView,
   ScrollView,
@@ -16,6 +18,8 @@ import {
   Text,
   useColorScheme,
   View,
+  Button,
+  TextInput,
 } from 'react-native';
 
 import {
@@ -54,39 +58,46 @@ const Section = ({children, title}): Node => {
 
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  const signIn = async () => {
+    try {
+      console.log(phoneNumber);
+      const confirmation = await auth().signInWithPhoneNumber("+1 416 655 5594");
+      
+      setConfirmation(confirmation);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const confirmVerificationCode = async (code) => {
+    try {
+      await confirmation.confirm(code);
+      setConfirmation(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // if (confirmation) {
+  //   return (
+  //     <View>
+  //       <TextInput placeholder="Verification Code" onChangeText={setCode} />
+  //       <Button title="Confirm OTP" onPress={() => confirmVerificationCode(code)} />
+  //     </View>
+  //   );
+  // }
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits Hello.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <View>
+      <TextInput placeholder="Phone Number" onChangeText={setPhoneNumber} />
+      <Button title="Phone Number Sign In" onPress={signIn} />
+    </View>
   );
 };
 
