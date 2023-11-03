@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextInput, Text, StyleSheet} from 'react-native';
+import { Button, TextInput, Text, StyleSheet, Alert} from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Toast from 'react-native-toast-message';
 import database from '@react-native-firebase/database';
+import messaging from '@react-native-firebase/messaging';
 
 const App = () => {
 
@@ -15,11 +16,11 @@ const App = () => {
     const [code, setCode] = useState('');
     const db = database().ref('/users/')
 
-    db
-      .once('value')
-      .then(snapshot => {
-      console.log('User data: ', snapshot.val());
-    });
+    // db
+    //   .once('value')
+    //   .then(snapshot => {
+    //   console.log('User data: ', snapshot.val());
+    // });
 
     // Handle login
     function onAuthStateChanged(user) {
@@ -43,13 +44,50 @@ const App = () => {
     //   const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
     //   return subscriber; // unsubscribe on unmount
     // }, []);
+
+    useEffect(() => {
+      // Assume a message-notification contains a "type" property in the data payload of the screen to open
+
+      const unsubscribe = messaging().onMessage(async remoteMessage => {
+        console.log(JSON.stringify(remoteMessage))
+        Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+      });
+  
+      // messaging().onNotificationOpenedApp(remoteMessage => {
+      //   console.log(
+      //     'Notification caused app to open from background state:',
+      //     remoteMessage.notification,
+      //   );
+      //   navigation.navigate(remoteMessage.data.type);
+      // });
+
+      messaging().setBackgroundMessageHandler(async remoteMessage => {
+        console.log('Message handled in the background!', remoteMessage);
+      });
+  
+      // Check whether an initial notification is available
+      messaging()
+        .getInitialNotification()
+        .then(remoteMessage => {
+          if (remoteMessage) {
+            console.log(
+              'Notification caused app to open from quit state:',
+              remoteMessage.notification,
+            );
+            // setInitialRoute(remoteMessage.data.type); // e.g. "Settings"
+          }
+          
+        });
+      return unsubscribe;
+    }, []);
   
     // Handle the button press
     async function signInWithPhoneNumber() {
       console.log(loggedIn, "+" + phone);
       try {
         if (phone) {
-          const confirmation = await auth().signInWithPhoneNumber("+" + phone);
+          // const confirmation = await auth().signInWithPhoneNumber("+" + phone);
+          const confirmation = 'yes';
           setConfirm(confirmation);
         }else{
           Toast.show({
@@ -95,18 +133,42 @@ const App = () => {
     async function confirmMessage() {
       try {
         if (message) {
-          db
-          .child('+' + phone)
-          .set(message)
-          .then(() => console.log('data set'));
-        }
+          // db
+          // .child('+' + phone)
+          // .set(message)
+          // .then(() => console.log('data set'));
         
-        Toast.show({
-          type: 'success',
-          text1: 'Your Message has been successfully submitted!',
-          text2: phone,
-          position: 'bottom'
-        })
+          Toast.show({
+            type: 'success',
+            text1: 'Your Message has been successfully submitted!',
+            text2: phone,
+            position: 'bottom'
+          })
+          const enabled = await messaging().hasPermission();
+          if (enabled) {
+            messaging()
+              .getToken()
+              .then(fcmToken => {
+                if (fcmToken) {
+                  console.log(fcmToken);
+                  db
+                    .child(phone)
+                    .set({
+                      message: message,
+                      notification_token: fcmToken,
+                      created_at: Date.now(),
+                    })
+                    .then(res => {
+                      console.log(res);
+                    });
+                } else {
+                alert("user doesn't have a device token yet");
+                }
+              });
+          } else {
+            alert("no");
+          }
+        }
       } catch (error) {
         console.log('Invalid message.');
         console.log(error);
