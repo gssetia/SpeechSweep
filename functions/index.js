@@ -17,15 +17,23 @@ const admin = require("firebase-admin");
 // admin.initializeApp(functions.config().firebase);
 admin.initializeApp();
 
-exports.schedulePushNotification = onSchedule("every day 06:51", async (event) => {
-    const notification = {
-        title: "Sweep!",
-        body: "Here is custom message",
-    }
+exports.schedulePushNotification = onSchedule("every day 17:30", async (event) => {
+    
 
     admin.database().ref('/users/').once('value', (snapshot) => {
+        const data = snapshot.val();
+        // console.log(snapshot.val());
 
-        console.log(snapshot.val());
+        const keys = Object.keys(data);
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        const randomEntry = data[randomKey];
+        console.log(randomKey);
+        console.log(randomEntry);
+
+        const notification = {
+            title: "Sweep!",
+            body: randomEntry['message'],
+        }
 
         snapshot.forEach((childSnapshot) => {
           const data = childSnapshot.val();
