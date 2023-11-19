@@ -3,12 +3,11 @@
  *
  * const {onCall} = require("firebase-functions/v2/https");
  * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
+ * firebase deploy --only functions
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+// const logger = require("firebase-functions/logger");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -17,7 +16,7 @@ const admin = require("firebase-admin");
 // admin.initializeApp(functions.config().firebase);
 admin.initializeApp();
 
-exports.schedulePushNotification = onSchedule("every day 17:30", async (event) => {
+exports.schedulePushNotification = onSchedule("every day 00:28", async (event) => {
     
 
     admin.database().ref('/users/').once('value', (snapshot) => {

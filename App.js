@@ -1,45 +1,95 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, SafeAreaView, TextInput, StyleSheet, Alert, ImageBackground} from 'react-native';
+import { Image, View, TextInput, StyleSheet, Alert, ImageBackground, Keyboard} from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Toast from 'react-native-toast-message';
 import database from '@react-native-firebase/database';
 import messaging from '@react-native-firebase/messaging';
-import { Button, Card, Input, Text } from '@rneui/themed';
+import { Button, Text } from '@rneui/themed';
 import PhoneInput from "react-native-phone-number-input";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/AntDesign';
 
 const App = () => {
-
     // If null, no SMS has been sent
     const [confirm, setConfirm] = useState(null);
-    const [loggedIn, setloggedIn] = useState(null);
+    const [loggedIn, setLoggedIn] = useState(null);
     const [phone, setPhone] = useState(null);
     const [message, setMessage] = useState('');
     // verification code (OTP - One-Time-Passcode)
     const [code, setCode] = useState('');
     const db = database().ref('/users/');
 
-
-    // Handle login
-    function onAuthStateChanged(user) {
-      if (user) {
-        console.log(user);
-        Toast.show({
-          type: 'success',
-          text1: 'You are now logged in as:',
-          text2: user.phoneNumber,
-          position: 'bottom'
-        })
-        setloggedIn(user.phoneNumber);
-        // Some Android devices can automatically process the verification code (OTP) message, and the user would NOT need to enter the code.
-        // Actually, if he/she tries to enter it, he/she will get an error message because the code was already used in the background.
-        // In this function, make sure you hide the component(s) for entering the code and/or navigate away from this screen.
-        // It is also recommended to display a message to the user informing him/her that he/she has successfully logged in.
+    const storeUser = async (value) => {
+      try {
+        const jsonValue = JSON.stringify(value);
+        await AsyncStorage.setItem('user', jsonValue);
+      } catch (e) {
+        // saving error
+        console.log(e);
       }
-    }
+    };
+
+    const storePhone = async (value) => {
+      try {
+        const jsonValue = JSON.stringify(value);
+        await AsyncStorage.setItem('phone', jsonValue);
+      } catch (e) {
+        // saving error
+        console.log(e);
+      }
+    };
+
+    const getData = async () => {
+      try {
+        const user = await AsyncStorage.getItem('user');
+        const phone = await AsyncStorage.getItem('phone');
+
+        if (user !== null) {
+          console.log("User already logged in as:" + user);
+          setLoggedIn(user);
+        }
+
+        if (phone !== null) {
+          console.log("User entered phone as:" + phone);
+          setConfirm(phone);
+        }else{
+          console.log("User at login.");
+        }
+
+      } catch (e) {
+        // error reading value
+        console.log(e);
+      }
+    };
+
+    const logout = async () => {
+      try {
+        setLoggedIn(null);
+        await AsyncStorage.removeItem('user');
+        console.log("Successfully logged out.")
+        back();
+      } catch (e) {
+        // error reading value
+        console.log(e);
+      }
+    };
+
+    const back = async () => {
+      try {
+        setConfirm(null);
+        await AsyncStorage.removeItem('phone');
+        console.log("Back to phone input")
+      } catch (e) {
+        // error reading value
+        console.log(e);
+      }
+    };
+
+
 
     useEffect(() => {
       // Assume a message-notification contains a "type" property in the data payload of the screen to open
-
+      getData();
       const unsubscribe = messaging().onMessage(async remoteMessage => {
         console.log(JSON.stringify(remoteMessage))
         Alert.alert('Sweep!', remoteMessage['notification']['body']);
@@ -75,22 +125,26 @@ const App = () => {
   
     // Handle the button press 
     async function signInWithPhoneNumber() {
-      console.log(loggedIn, phone);
+      console.log(phone);
       try {
         if (phone) {
           const confirmation = await auth().signInWithPhoneNumber(phone);
           setConfirm(confirmation);
+          storePhone(phone);
+
           Toast.show({
             type: 'info',
             text1: 'OTP',
             text2: "Enter the one-time password sent to your phone number.",
             position: 'bottom'
           });
+
         }else{
+          Keyboard.dismiss();
           Toast.show({
             type: 'error',
             text1: 'Error',
-            text2: "Your Phone Number is invalid, please Try again",
+            text2: "Your Phone Number is invalid, please try again",
             position: 'bottom'
           });
         }
@@ -98,10 +152,11 @@ const App = () => {
       }catch (error) {
         console.log('Invalid phone#:', phone);
         console.log(error);
+        Keyboard.dismiss();
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: "Your Phone Number is invalid, please Try again",
+          text2: "Your Phone Number is invalid, please try again",
           position: 'bottom'
         });
       }
@@ -110,19 +165,24 @@ const App = () => {
     async function confirmCode() {
       try {
         await confirm.confirm(code);
-        console.log("Nice!");
+        storeUser(phone);
+        setLoggedIn(phone);
+
         Toast.show({
           type: 'success',
           text1: 'You are now logged in as:',
           text2: phone,
           position: 'bottom'
         });
-        setloggedIn(phone);
-        db
-        .child(phone)
-        .set("")
-        .then(() => {console.log('data set')});
+
       } catch (error) {
+        Keyboard.dismiss();
+        Toast.show({
+          type: 'error',
+          text1: 'OTP code is incorrect.',
+          text2:'Please try again.',
+          position: 'bottom'
+        });
         console.log('Invalid code.');
         console.log(error);
       }
@@ -173,7 +233,6 @@ const App = () => {
       }
     }
 
-
     return (
     
         <ImageBackground style={styles.view} source={require('./assets/bg2.png')}> 
@@ -181,40 +240,62 @@ const App = () => {
         {!confirm ? (
 
           <View style={styles.container}> 
-          <Image style={styles.logo} source={require("./assets/speechsweep.png")}/>
-          
-          <PhoneInput textContainerStyle={{  borderColor:"black", borderLeftWidth:1, backgroundColor: 'tomato' }} containerStyle={{ borderRadius:3, borderColor:"black", borderWidth:1, backgroundColor: 'tomato' }} textInputStyle={ styles.input } defaultCode="CA" placeholder='Phone #' value={phone} onChangeFormattedText={text => setPhone(text)} autoFocus/>
-          <Button
-          buttonStyle={styles.button}
-          color="tomato"
-          title="Next"
-          onPress={() => signInWithPhoneNumber()}
-        />
+            <Image style={styles.logo} source={require("./assets/speechsweep.png")}/>
+            
+            <PhoneInput textContainerStyle={{  borderColor:"black", borderLeftWidth:1, backgroundColor: 'tomato' }} containerStyle={{ borderRadius:3, borderColor:"black", borderWidth:1, backgroundColor: 'tomato' }} textInputStyle={ styles.input } defaultCode="CA" placeholder='Phone #' onChangeFormattedText={text => setPhone(text)} autoFocus/>
+            <Button
+              buttonStyle={styles.button}
+              color="tomato"
+              title="Next"
+              onPress={() => signInWithPhoneNumber()}/>
           </View>
 
         ) : !loggedIn ? 
           (
             <View style={styles.container}>
-            <TextInput keyboardType='numeric' style={styles.codeInput} value={code} onChangeText={text => setCode(text)} />
-            <Button buttonStyle={styles.button} title="Confirm" onPress={() => confirmCode()} />
+
+              <View style={styles.backContainer}>
+                <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => back()}>
+                  <Icon size={25} name='back'/>
+                </Button>
+              </View>
+
+              <TextInput keyboardType='numeric' style={styles.codeInput} onChangeText={text => setCode(text)} />
+              <Button buttonStyle={styles.button} title="Confirm" onPress={() => confirmCode()} />
             </View>
         ):
-        <View style={styles.container2}>
-          
-          <Text h3 style={styles.text}>Submit your message below to be broadcast to all participants if you win the Sweep! </Text>
-          <TextInput numberOfLines={6} style={styles.messageInput} value={message} maxLength={100} multiline={true} onChangeText={text => setMessage(text)} />
-          <Button buttonStyle={styles.button} title="Submit!" onPress={() => confirmMessage()} />
+          <View style={styles.container2}>
+            
+            <View style={styles.logoutContainer}>
+              <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => logout()}>
+                <Icon size={25} name='logout'/>
+              </Button>
+            </View>
+            
+            <Text h3 style={styles.text}>Submit your message below to be broadcast to all participants if you win the Sweep! </Text>
+            <TextInput numberOfLines={6} style={styles.messageInput} value={message} maxLength={100} multiline={true} onChangeText={text => setMessage(text)} />
+            <Button buttonStyle={styles.button} title="Submit!" onPress={() => confirmMessage()}/>
           </View>
-        
+            
         }
-        <Toast bottomOffset={10}/>
-        
+        <Toast bottomOffset={30}/>
         </ImageBackground>
        
     )
   };
 
   const styles = StyleSheet.create({
+    logoutContainer: {
+      left:160,
+      borderColor:'black',
+      borderWidth:1,
+    },
+    backContainer: {
+      right:160,
+      borderColor:'black',
+      borderWidth:1,
+      bottom:240,
+    },
     logo: {
       width: 125,
       height:125, 
