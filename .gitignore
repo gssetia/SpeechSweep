@@ -30,6 +30,8 @@ build/
 local.properties
 *.iml
 *.hprof
+android/gradle.properties
+android/app/my-upload-key.keystore
 
 # node.js
 #
