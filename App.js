@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, TextInput, StyleSheet, Alert, ImageBackground, Keyboard} from 'react-native';
+import { Image, View, TextInput, StyleSheet, Alert, ImageBackground, Keyboard, Dimensions} from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Toast from 'react-native-toast-message';
 import database from '@react-native-firebase/database';
@@ -8,6 +8,9 @@ import { Button, Text } from '@rneui/themed';
 import PhoneInput from "react-native-phone-number-input";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/AntDesign';
+
+const windowDimensions = Dimensions.get('window');
+const screenDimensions = Dimensions.get('screen');
 
 const App = () => {
     // If null, no SMS has been sent
@@ -100,8 +103,8 @@ const App = () => {
       //     'Notification caused app to open from background state:',
       //     remoteMessage.notification,
       //   );
-      //   navigation.navigate(remoteMessage.data.type); fXNFZaU4ShmGgqsxpWqNM9:APA91bHAXgUIfFr68jakrRw-etsua1BtMOTdokfUDqRp9N0fqBaHMki68fqW8oe4j0yysYtMmZFYCrnudGxUTYUlcvfbEOPqyErV08RIPUwrochY2gIUOR6z3CId5gVR3pGUOE0UPd4l
-      // }); egQwMs0K0GZetFO9q-bsbJ:APA91bHGZ8Q5sWYXVEyo3rWhgWKOyXhreakbv9AO7Mlgqfo9tLI_i5hWIw70ysNvX_XTgqDv1PCty4GlxA2RoHhII4MKdE1yEZxofbPQICkn5MN8MHFeGPTeKbKvnrQeUayWXoj3SsbS
+      //   navigation.navigate(remoteMessage.data.type); 
+      // }); 
 
       messaging().setBackgroundMessageHandler(async remoteMessage => {
         console.log('Message handled in the background!', remoteMessage['notification']['body']);
@@ -196,14 +199,8 @@ const App = () => {
           // .set(message)
           // .then(() => console.log('data set'));
         
-          Toast.show({
-            type: 'success',
-            text1: 'Your Message has been successfully submitted!',
-            text2: phone,
-            position: 'bottom'
-          })
           const enabled = await messaging().hasPermission();
-          if (enabled) {
+          if (!enabled) {
             messaging()
               .getToken()
               .then(fcmToken => {
@@ -220,11 +217,31 @@ const App = () => {
                       console.log(res);
                     });
                 } else {
-                alert("user doesn't have a device token yet");
+                alert("User doesn't have a device token yet");
                 }
               });
+              Keyboard.dismiss();
+              Toast.show({
+                type: 'success',
+                text1: 'Your message has been successfully submitted!',
+                text2: phone,
+                position: 'bottom'
+              });
+
           } else {
-            alert("Notifications must be enabled.");
+            Keyboard.dismiss();
+            Toast.show({
+              type: 'success',
+              text1: 'Your message has been successfully submitted!',
+              text2: phone,
+              position: 'bottom'
+            });
+            // Toast.show({
+            //   type: 'error',
+            //   text1: 'Notifications must be enabled to enter!',
+            //   text2: 'Enable notifications before trying again',
+            //   position: 'bottom'
+            // });
           }
         }
       } catch (error) {
@@ -237,126 +254,224 @@ const App = () => {
     
         <ImageBackground style={styles.view} source={require('./assets/bg2.png')}> 
 
-        {!confirm ? (
+        { confirm ? (
 
-          <View style={styles.container}> 
-            <Image style={styles.logo} source={require("./assets/speechsweep.png")}/>
-            
-            <PhoneInput textContainerStyle={{  borderColor:"black", borderLeftWidth:1, backgroundColor: 'tomato' }} containerStyle={{ borderRadius:3, borderColor:"black", borderWidth:1, backgroundColor: 'tomato' }} textInputStyle={ styles.input } defaultCode="CA" placeholder='Phone #' onChangeFormattedText={text => setPhone(text)} autoFocus/>
-            <Button
-              buttonStyle={styles.button}
-              color="tomato"
-              title="Next"
-              onPress={() => signInWithPhoneNumber()}/>
-          </View>
+           
+          <View style={styles.container}>
+              <View
+                style={{
+                  height: '30%',
+                  width:'45%',
+                  // backgroundColor: 'lightblue',
+                  justifyContent:'center',
+                  alignItems:'center',
+                }}
+              > 
+              <Image style={styles.logo} source={require("./assets/speechsweep.png")}/>
+              </View>
 
-        ) : !loggedIn ? 
+
+              <View
+                style={{
+                  width: '80%',
+                  height: '25%',
+                  justifyContent:'center'
+                }}
+              >
+              
+              <PhoneInput textContainerStyle={{ borderColor:"black", borderLeftWidth:1, backgroundColor: 'tomato' }} containerStyle={{ borderRadius:3, borderColor:"black", borderWidth:1, backgroundColor: 'tomato' }} textInputStyle={ styles.input } defaultCode="CA" placeholder='Phone #' codeTextStyle={{fontSize:20,}} onChangeFormattedText={text => setPhone(text)} autoFocus/>
+              
+              </View> 
+              <View
+                  style={{
+                    width: '25%',
+                    height: '45%',
+                    // backgroundColor: 'steelblue',
+                    textAlign:'center'
+                  }}
+              >
+                <Button
+                  buttonStyle={styles.button}
+                  titleStyle={{fontSize:20}}
+                  color="tomato"
+                  title="Next"
+                  onPress={() => signInWithPhoneNumber()}/>
+              </View> 
+            </View>
+
+
+        ) : loggedIn ? 
           (
             <View style={styles.container}>
 
-              <View style={styles.backContainer}>
-                <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => back()}>
-                  <Icon size={25} name='back'/>
+
+            <View
+                style={{
+                  height: '20%',
+                  width:'40%',
+                  // backgroundColor: 'lightblue',
+                  justifyContent:'flex-end',
+                  alignItems:'center',
+                }}
+              > 
+                  <View style={styles.buttonContainer}>
+                  <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => back()}>
+                    <Icon size={25} name='back'/>
+                  </Button>
+                </View>
+                
+              </View>
+
+              <View
+                style={{
+                  width: '55%',
+                  height: '35%',
+                  justifyContent:'center',
+                  // backgroundColor:'skyblue',
+                  alignItems:'center'
+                }}
+              >
+
+<Text h3 style={styles.text}> Confirm the 6-digit OTP sent to your phone </Text>
+<TextInput keyboardType='numeric' placeholder='Verify #' style={styles.codeInput} onChangeText={text => setCode(text)} />
+              </View>
+
+              <View
+                style={{
+                  width: '25%',
+                  height: '45%',
+                  // backgroundColor: 'steelblue',
+                  textAlign:'center'
+                }}
+              >
+ 
+              <Button titleStyle={{fontSize:20}} buttonStyle={styles.button} title="Confirm" onPress={() => confirmCode()} />
+              </View>
+              
+             
+             
+            </View>
+        ):
+
+
+          <View style={styles.container}>
+
+
+
+
+          <View
+                style={{
+                  height: '20%',
+                  width:'40%',
+                  // backgroundColor: 'lightblue',
+                  justifyContent:'flex-end',
+                  alignItems:'center',
+                }}
+              > 
+              <View style={styles.buttonContainer}>
+                <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => logout()}>
+                  <Icon size={25} name='logout'/>
                 </Button>
               </View>
 
-              <TextInput keyboardType='numeric' style={styles.codeInput} onChangeText={text => setCode(text)} />
-              <Button buttonStyle={styles.button} title="Confirm" onPress={() => confirmCode()} />
             </View>
-        ):
-          <View style={styles.container2}>
-            
-            <View style={styles.logoutContainer}>
-              <Button buttonStyle={{backgroundColor:'orange'}} onPress={() => logout()}>
-                <Icon size={25} name='logout'/>
-              </Button>
-            </View>
-            
-            <Text h3 style={styles.text}>Submit your message below to be broadcast to all participants if you win the Sweep! </Text>
-            <TextInput numberOfLines={6} style={styles.messageInput} value={message} maxLength={100} multiline={true} onChangeText={text => setMessage(text)} />
-            <Button buttonStyle={styles.button} title="Submit!" onPress={() => confirmMessage()}/>
+
+            <View
+                style={{
+                  width: '80%',
+                  height: '35%',
+                  justifyContent:'center',
+                  // backgroundColor:'skyblue',
+                  alignItems:'center'
+                }}
+              >
+
+                <Text h4 style={styles.text}>Submit your message below to be broadcast to all participants if you win the Sweep! </Text>
+                
+                <TextInput numberOfLines={6} style={styles.messageInput} value={message} maxLength={240} multiline={true} placeholder='240 Characters Max' onChangeText={text => setMessage(text)} />
+                    
+                </View>
+
+
+  <View
+                style={{
+                  width: '25%',
+                  height: '45%',
+                  // backgroundColor: 'steelblue',
+                  textAlign:'center'
+                }}
+              >
+                  <Button titleStyle={{fontSize:20}} buttonStyle={styles.button} title="Submit!" onPress={() => confirmMessage()}/>
+                  
+
+</View>
+                
+                
           </View>
             
         }
-        <Toast bottomOffset={30}/>
+        <Toast bottomOffset={90}/>
         </ImageBackground>
        
     )
   };
 
   const styles = StyleSheet.create({
-    logoutContainer: {
-      left:160,
+    buttonContainer: {
+      right:'80%',
       borderColor:'black',
       borderWidth:1,
-    },
-    backContainer: {
-      right:160,
-      borderColor:'black',
-      borderWidth:1,
-      bottom:240,
     },
     logo: {
-      width: 125,
-      height:125, 
-      top: 50,
-      position:'absolute',
+      width: '70%',
+      height: '70%', 
     },
     text:{
       textAlign:'center',
-      padding:50,
       paddingBottom:20,
     },
     container: {
       alignItems:'center',
-      flex:1,
       justifyContent:'center',
-    },
-    container2: {
-      alignItems:'center',
-      flex:1,
-      justifyContent:'center',
-      bottom:100,
     },
     codeInput: {
-      height: 30,
+      height: 50,
       backgroundColor: 'pink',
-      width: 100,
+      width: 150,
       borderRadius:4,
       padding: 5,
+      textAlign:'center',
+      fontSize:20,
     },
     messageInput: {
-      height: 100,
+      height: '50%',
       backgroundColor: 'pink',
-      width: 260,
       borderRadius:4,
-      padding: 5,
+      marginLeft:100,
+      marginRight:100,
+      textAlign:'center',
+      fontSize:20,
+      width:'90%',
     },
     input: {
       borderRadius:3,
-      height: 30,
+      height: 40,
       borderWidth: 1,
       padding: 5,
       justifyContent:"center",
       alignItems:"center",
       backgroundColor: 'pink',
+      fontSize:20,
     },
     button: {
       height: 45,
-      marginTop:20,
       borderRadius:20,
-      width:100,
-      justifyContent: 'center',
-      alignItems: 'center',
+      width:'100%',
       backgroundColor: 'red',
     },
     view : {
-      flex: 1,
-      alignItems: 'center',
       justifyContent:"center",
+      height:'100%',
     },
-    bg : {
-      flex: 1,
-    }
   });
 export default App;

@@ -16,7 +16,7 @@ const admin = require("firebase-admin");
 // admin.initializeApp(functions.config().firebase);
 admin.initializeApp();
 
-exports.schedulePushNotification = onSchedule("every day 17:00", async (event) => {
+exports.schedulePushNotification = onSchedule("every monday 17:00", async (event) => {
     
 
     admin.database().ref('/users/').once('value', (snapshot) => {
